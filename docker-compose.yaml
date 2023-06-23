@@ -2,142 +2,283 @@ version: '3.3'
 
 services:
 
-  redis-master:
-    image: 'bitnami/redis:7.0.9'
+  redis-instance-1:
+    image: redis:7.0.9
     ports:
-      - '6371:6371'
+    - target: 6371
+      published: 6371
+      protocol: tcp
     networks:
       redis:
-    environment:
-      - REDIS_PORT_NUMBER=6371
-      - REDIS_REPLICATION_MODE=master
-      - REDIS_PASSWORD=7cBEcwf6mV36Rx3S
-      - REDIS_EXTRA_FLAGS=--maxmemory 100mb --min-replicas-to-write 3
+    sysctls:
+      net.core.somaxconn: 512
+    entrypoint: |
+      bash -c 'bash -s <<EOF
+      "/bin/bash" -c "cat <<EOF > /tmp/redis.conf
+      port 0
+      tls-port 6371
+      tls-cert-file /certs/cert.pem
+      tls-key-file /certs/key.pem
+      tls-ca-cert-file /certs/ca-cert.pem
+      tls-auth-clients no
+      tls-replication yes
+      replica-announce-ip $ENVIRONMENT_DNS
+      replica-announce-port 6371
+      masterauth $REDIS_PASSWORD
+      min-replicas-to-write 0
+      min-replicas-max-lag 5
+      repl-timeout 3
+      maxmemory 0
+      appendonly no
+      requirepass $REDIS_PASSWORD
+      EOF"
+      "/bin/bash" -c "redis-server /tmp/redis.conf"
+      EOF'
+    secrets:
+    - source: environment.crt
+      target: /certs/cert.pem
+    - source: environment.key
+      target: /certs/key.pem
+    configs:
+    - source: ca.crt
+      target: /certs/ca-cert.pem
     deploy:
       mode: replicated
       replicas: 1
 
-  redis-slave-1:
-    image: 'bitnami/redis:7.0.9'
+  redis-instance-2:
+    image: redis:7.0.9
+    ports:
+    - target: 6372
+      published: 6372
+      protocol: tcp
     networks:
       redis:
-    ports:
-      - '6372:6372'
-    depends_on:
-      - redis-master
-    environment:
-      - REDIS_PORT_NUMBER=6372
-      - REDIS_REPLICATION_MODE=replica
-      - REDIS_REPLICA_IP=192.168.1.75
-      - REDIS_REPLICA_PORT=6372
-      - REDIS_MASTER_HOST=192.168.1.75
-      - REDIS_MASTER_PORT_NUMBER=6371
-      - REDIS_MASTER_PASSWORD=7cBEcwf6mV36Rx3S
-      - REDIS_PASSWORD=7cBEcwf6mV36Rx3S
-      - REDIS_EXTRA_FLAGS=--maxmemory 100mb --min-replicas-to-write 3
+    sysctls:
+      net.core.somaxconn: 512
+    entrypoint: |
+      bash -c 'bash -s <<EOF
+      "/bin/bash" -c "cat <<EOF > /tmp/redis.conf
+      port 0
+      tls-port 6372
+      tls-cert-file /certs/cert.pem
+      tls-key-file /certs/key.pem
+      tls-ca-cert-file /certs/ca-cert.pem
+      tls-auth-clients no
+      tls-replication yes
+      replicaof $ENVIRONMENT_DNS 6371
+      replica-announce-ip $ENVIRONMENT_DNS
+      replica-announce-port 6372
+      masterauth $REDIS_PASSWORD
+      min-replicas-to-write 0
+      min-replicas-max-lag 5
+      repl-timeout 3
+      maxmemory 0
+      appendonly no
+      requirepass $REDIS_PASSWORD
+      EOF"
+      "/bin/bash" -c "redis-server /tmp/redis.conf"
+      EOF'
+    secrets:
+    - source: environment.crt
+      target: /certs/cert.pem
+    - source: environment.key
+      target: /certs/key.pem
+    configs:
+    - source: ca.crt
+      target: /certs/ca-cert.pem
     deploy:
       mode: replicated
       replicas: 1
 
-  redis-slave-2:
-    image: 'bitnami/redis:7.0.9'
+  redis-instance-3:
+    image: redis:7.0.9
+    ports:
+    - target: 6373
+      published: 6373
+      protocol: tcp
     networks:
       redis:
-    ports:
-      - '6373:6373'
-    depends_on:
-      - redis-master
-    environment:
-      - REDIS_PORT_NUMBER=6373
-      - REDIS_REPLICATION_MODE=replica
-      - REDIS_REPLICA_IP=192.168.1.75
-      - REDIS_REPLICA_PORT=6373
-      - REDIS_MASTER_HOST=192.168.1.75
-      - REDIS_MASTER_PORT_NUMBER=6371
-      - REDIS_MASTER_PASSWORD=7cBEcwf6mV36Rx3S
-      - REDIS_PASSWORD=7cBEcwf6mV36Rx3S
-      - REDIS_EXTRA_FLAGS=--maxmemory 100mb --min-replicas-to-write 3
+    sysctls:
+      net.core.somaxconn: 512
+    entrypoint: |
+      bash -c 'bash -s <<EOF
+      "/bin/bash" -c "cat <<EOF > /tmp/redis.conf
+      port 0
+      tls-port 6373
+      tls-cert-file /certs/cert.pem
+      tls-key-file /certs/key.pem
+      tls-ca-cert-file /certs/ca-cert.pem
+      tls-auth-clients no
+      tls-replication yes
+      replicaof $ENVIRONMENT_DNS 6371
+      replica-announce-ip $ENVIRONMENT_DNS
+      replica-announce-port 6373
+      masterauth $REDIS_PASSWORD
+      min-replicas-to-write 0
+      min-replicas-max-lag 5
+      repl-timeout 3
+      maxmemory 0
+      appendonly no
+      requirepass $REDIS_PASSWORD
+      EOF"
+      "/bin/bash" -c "redis-server /tmp/redis.conf"
+      EOF'
+    secrets:
+    - source: environment.crt
+      target: /certs/cert.pem
+    - source: environment.key
+      target: /certs/key.pem
+    configs:
+    - source: ca.crt
+      target: /certs/ca-cert.pem
     deploy:
       mode: replicated
       replicas: 1
 
   redis-sentinel-1:
-    image: 'bitnami/redis:7.0.9'
+    image: redis:7.0.9
+    ports:
+    - target: 26371
+      published: 26371
+      protocol: tcp
     networks:
       redis:
-    ports:
-      - '26371:26371'
+    sysctls:
+      net.core.somaxconn: 512
     depends_on:
-      - redis-master
-      - redis-slave-1
-      - redis-slave-2
+      - redis-instance-1
+      - redis-instance-2
+      - redis-instance-3
     entrypoint: |
       bash -c 'bash -s <<EOF
-      "/bin/bash" -c "cat <<EOF > /opt/bitnami/redis/etc/sentinel.conf
-      port 26371
-      dir /tmp
-      sentinel monitor redis-cache 192.168.1.75 6371 2
-      sentinel down-after-milliseconds redis-cache 5000
-      sentinel parallel-syncs redis-cache 1
-      sentinel failover-timeout redis-cache 5000
-      sentinel auth-pass redis-cache 7cBEcwf6mV36Rx3S
+      "/bin/bash" -c "cat <<EOF > /tmp/sentinel.conf
+      port 0
+      tls-port 26371
+      tls-cert-file /certs/cert.pem
+      tls-key-file /certs/key.pem
+      tls-ca-cert-file /certs/ca-cert.pem
+      tls-auth-clients no
+      tls-replication yes
+      sentinel monitor app $ENVIRONMENT_DNS 6371 2
+      sentinel down-after-milliseconds app 1000
+      sentinel parallel-syncs app 2
+      sentinel failover-timeout app 1000
+      sentinel auth-pass app $REDIS_PASSWORD
+      sentinel resolve-hostnames yes
+      sentinel announce-hostnames yes
+      sentinel announce-ip $ENVIRONMENT_DNS
+      sentinel announce-port 26371
+      requirepass $REDIS_PASSWORD
       EOF"
-      "/bin/bash" -c "redis-sentinel /opt/bitnami/redis/etc/sentinel.conf"
+      "/bin/bash" -c "redis-server /tmp/sentinel.conf"
       EOF'
+    secrets:
+    - source: environment.crt
+      target: /certs/cert.pem
+    - source: environment.key
+      target: /certs/key.pem
+    configs:
+    - source: ca.crt
+      target: /certs/ca-cert.pem
     deploy:
       mode: replicated
       replicas: 1
 
   redis-sentinel-2:
-    image: 'bitnami/redis:7.0.9'
+    image: redis:7.0.9
+    ports:
+    - target: 26372
+      published: 26372
+      protocol: tcp
     networks:
       redis:
-    ports:
-      - '26372:26372'
+    sysctls:
+      net.core.somaxconn: 512
     depends_on:
-      - redis-master
-      - redis-slave-1
-      - redis-slave-2
+      - redis-instance-1
+      - redis-instance-2
+      - redis-instance-3
     entrypoint: |
       bash -c 'bash -s <<EOF
-      "/bin/bash" -c "cat <<EOF > /opt/bitnami/redis/etc/sentinel.conf
-      port 26372
-      dir /tmp
-      sentinel monitor redis-cache 192.168.1.75 6371 2
-      sentinel down-after-milliseconds redis-cache 5000
-      sentinel parallel-syncs redis-cache 1
-      sentinel failover-timeout redis-cache 5000
-      sentinel auth-pass redis-cache 7cBEcwf6mV36Rx3S
+      "/bin/bash" -c "cat <<EOF > /tmp/sentinel.conf
+      port 0
+      tls-port 26372
+      tls-cert-file /certs/cert.pem
+      tls-key-file /certs/key.pem
+      tls-ca-cert-file /certs/ca-cert.pem
+      tls-auth-clients no
+      tls-replication yes
+      sentinel monitor app $ENVIRONMENT_DNS 6371 2
+      sentinel down-after-milliseconds app 1000
+      sentinel parallel-syncs app 2
+      sentinel failover-timeout app 1000
+      sentinel auth-pass app $REDIS_PASSWORD
+      sentinel resolve-hostnames yes
+      sentinel announce-hostnames yes
+      sentinel announce-ip $ENVIRONMENT_DNS
+      sentinel announce-port 26372
+      requirepass $REDIS_PASSWORD
       EOF"
-      "/bin/bash" -c "redis-sentinel /opt/bitnami/redis/etc/sentinel.conf"
+      "/bin/bash" -c "redis-server /tmp/sentinel.conf"
       EOF'
+    secrets:
+    - source: environment.crt
+      target: /certs/cert.pem
+    - source: environment.key
+      target: /certs/key.pem
+    configs:
+    - source: ca.crt
+      target: /certs/ca-cert.pem
     deploy:
       mode: replicated
       replicas: 1
 
   redis-sentinel-3:
-    image: 'bitnami/redis:7.0.9'
+    image: redis:7.0.9
+    ports:
+    - target: 26373
+      published: 26373
+      protocol: tcp
     networks:
       redis:
-    ports:
-      - '26373:26373'
+    sysctls:
+      net.core.somaxconn: 512
     depends_on:
-      - redis-master
-      - redis-slave-1
-      - redis-slave-2
+      - redis-instance-1
+      - redis-instance-2
+      - redis-instance-3
     entrypoint: |
       bash -c 'bash -s <<EOF
-      "/bin/bash" -c "cat <<EOF > /opt/bitnami/redis/etc/sentinel.conf
-      port 26373
-      dir /tmp
-      sentinel monitor redis-cache 192.168.1.75 6371 2
-      sentinel down-after-milliseconds redis-cache 5000
-      sentinel parallel-syncs redis-cache 1
-      sentinel failover-timeout redis-cache 5000
-      sentinel auth-pass redis-cache 7cBEcwf6mV36Rx3S
+      "/bin/bash" -c "cat <<EOF > /tmp/sentinel.conf
+      port 0
+      tls-port 26373
+      tls-cert-file /certs/cert.pem
+      tls-key-file /certs/key.pem
+      tls-ca-cert-file /certs/ca-cert.pem
+      tls-auth-clients no
+      tls-replication yes
+      sentinel monitor app $ENVIRONMENT_DNS 6371 2
+      sentinel down-after-milliseconds app 1000
+      sentinel parallel-syncs app 2
+      sentinel failover-timeout app 1000
+      sentinel auth-pass app $REDIS_PASSWORD
+      sentinel resolve-hostnames yes
+      sentinel announce-hostnames yes
+      sentinel announce-ip $ENVIRONMENT_DNS
+      sentinel announce-port 26373
+      requirepass $REDIS_PASSWORD
       EOF"
-      "/bin/bash" -c "redis-sentinel /opt/bitnami/redis/etc/sentinel.conf"
+      "/bin/bash" -c "redis-server /tmp/sentinel.conf"
       EOF'
+    secrets:
+    - source: environment.crt
+      target: /certs/cert.pem
+    - source: environment.key
+      target: /certs/key.pem
+    configs:
+    - source: ca.crt
+      target: /certs/ca-cert.pem
     deploy:
       mode: replicated
       replicas: 1
