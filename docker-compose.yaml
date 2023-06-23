@@ -3,7 +3,7 @@ version: '3.3'
 services:
 
   redis-instance-1:
-    image: redis:7.0.9
+    image: $REDIS_IMAGE
     ports:
     - target: 6371
       published: 6371
@@ -47,7 +47,7 @@ services:
       replicas: 1
 
   redis-instance-2:
-    image: redis:7.0.9
+    image: $REDIS_IMAGE
     ports:
     - target: 6372
       published: 6372
@@ -56,6 +56,8 @@ services:
       redis:
     sysctls:
       net.core.somaxconn: 512
+    depends_on:
+      - redis-instance-1
     entrypoint: |
       bash -c 'bash -s <<EOF
       "/bin/bash" -c "cat <<EOF > /tmp/redis.conf
@@ -92,7 +94,7 @@ services:
       replicas: 1
 
   redis-instance-3:
-    image: redis:7.0.9
+    image: $REDIS_IMAGE
     ports:
     - target: 6373
       published: 6373
@@ -101,6 +103,8 @@ services:
       redis:
     sysctls:
       net.core.somaxconn: 512
+    depends_on:
+      - redis-instance-1
     entrypoint: |
       bash -c 'bash -s <<EOF
       "/bin/bash" -c "cat <<EOF > /tmp/redis.conf
@@ -137,7 +141,7 @@ services:
       replicas: 1
 
   redis-sentinel-1:
-    image: redis:7.0.9
+    image: $REDIS_IMAGE
     ports:
     - target: 26371
       published: 26371
@@ -186,7 +190,7 @@ services:
       replicas: 1
 
   redis-sentinel-2:
-    image: redis:7.0.9
+    image: $REDIS_IMAGE
     ports:
     - target: 26372
       published: 26372
@@ -235,7 +239,7 @@ services:
       replicas: 1
 
   redis-sentinel-3:
-    image: redis:7.0.9
+    image: $REDIS_IMAGE
     ports:
     - target: 26373
       published: 26373
