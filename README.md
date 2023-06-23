@@ -9,18 +9,47 @@ In short, Redis is a superfast key store which is best used without persistency.
 
 # Stack architecture
 
+The following describes all of the moving parts for this stack as well as how it is configured out of the box. Understanding this is crucial for proper configuration and deployment. It will also help you understand how to edit the stack file to fit your needs.
+
 ## Redis
 
-Each instance is a single replica service due to the need for them to be preconfigured beforehand. Redis instance services are named `redis-instance-N` where `N` is the instance id (e.g. 1, 2, 3). `redis-instance-1` is preconfigured to be the initial master. Instances 2 and 3 have the exact same configuration, but are also configured to replicate `redis-instance-1`. Each instance publishes its own TLS secure port `637N` where `N` is the instance id, which is also the port that is being announced to other instances. Instances are also configured to announce themselves using `$ENVIRONMENT_DNS` hostname.
+Each instance is a single replica service due to the need for them to be preconfigured beforehand and accessed individually. Redis instance services are named `redis-instance-N` where `N` is the instance id (e.g. 1, 2, 3). `redis-instance-1` is preconfigured to be the initial master. Instances 2 and 3 have the exact same configuration, but are also configured to replicate `redis-instance-1`. Each instance publishes its own TLS secure port `637N` where `N` is the instance id, which is also the port that is being announced to other instances. Instances are also configured to announce themselves using `$ENVIRONMENT_DNS` hostname.
 
 ## Redis Sentinel
 
-Redis Sentinel instance services are named `redis-sentinel-N` where `N` is the instance id (e.g. 1, 2, 3). Instances discover each other via the initial Redis master instance `redis-instance-1`. Each instance publishes its own TLS secure port `2637N` where `N` is the instance id, which is also the port that is being announced to other instances. Instances are also configured to announce themselves using `$ENVIRONMENT_DNS` hostname.
+Each instance is a single replica service due to the need for them to be preconfigured beforehand and accessed individually. Redis Sentinel instance services are named `redis-sentinel-N` where `N` is the instance id (e.g. 1, 2, 3). Instances discover each other via the initial Redis master instance `redis-instance-1`. Each instance publishes its own TLS secure port `2637N` where `N` is the instance id, which is also the port that is being announced to other instances. Instances are also configured to announce themselves using `$ENVIRONMENT_DNS` hostname.
 
 ## Configuration
 
-Stack deployment can be configured via a `.env` file which comes with this repository. The following variables are used to the stack:
+Stack deployment can be configured via a `.env` file which comes with this repository. The following variables are used in the stack:
 
 - `ENVIRONMENT_DNS`: DNS name which will lead to one of your Swarm nodes. This can be achieved by deploying a front-facing load balancer or a `keepalived` global service which will juggle a VIP between nodes. TLS certificate must secure this DNS name.
 - `REDIS_IMAGE`: image used by both Redis and Redis Sentinel instances. Later official Redis images come with Sentinel built-in.
 - `REDIS_PASSWORD`: authentication password for both Redis and Redis Sentinel. Keep in mind that username is NOT configured to be used.
+
+# Deployment
+
+First, make sure you complete all of the prep work:
+
+## Prerequisites
+
+- Docker Swarm up and running
+- `.env` file configured for your environment
+- Certificate signed for the `$ENVIRONMENT_DNS` DNS name created as secrets in PEM format called `cert.pem` and `key.pem`
+- CA certificate / full-chain for the signed certificate created as config in PEM format called `ca.pem`
+- `$REDIS_IMAGE` docker image accessible from the Swarm
+
+## Procedure
+
+1. Log-in to a Swarm manager and transfer the `docker-compose.yaml` as well as the edited `.env` file to it.
+
+2. Substitute the environment variables and deploy the stack like so:
+   ```sh
+   # register environment variables
+   set -a
+   . .env
+   set +a
+
+   # substitute variables and deploy the stack
+   envsubst < docker-compose.yaml | docker stack deploy redis -c -
+   ```

@@ -35,12 +35,12 @@ services:
       "/bin/bash" -c "redis-server /tmp/redis.conf"
       EOF'
     secrets:
-    - source: environment.crt
+    - source: cert.pem
       target: /certs/cert.pem
-    - source: environment.key
+    - source: key.pem
       target: /certs/key.pem
     configs:
-    - source: ca.crt
+    - source: ca.pem
       target: /certs/ca-cert.pem
     deploy:
       mode: replicated
@@ -82,12 +82,12 @@ services:
       "/bin/bash" -c "redis-server /tmp/redis.conf"
       EOF'
     secrets:
-    - source: environment.crt
+    - source: cert.pem
       target: /certs/cert.pem
-    - source: environment.key
+    - source: key.pem
       target: /certs/key.pem
     configs:
-    - source: ca.crt
+    - source: ca.pem
       target: /certs/ca-cert.pem
     deploy:
       mode: replicated
@@ -129,12 +129,12 @@ services:
       "/bin/bash" -c "redis-server /tmp/redis.conf"
       EOF'
     secrets:
-    - source: environment.crt
+    - source: cert.pem
       target: /certs/cert.pem
-    - source: environment.key
+    - source: key.pem
       target: /certs/key.pem
     configs:
-    - source: ca.crt
+    - source: ca.pem
       target: /certs/ca-cert.pem
     deploy:
       mode: replicated
@@ -175,15 +175,15 @@ services:
       sentinel announce-port 26371
       requirepass $REDIS_PASSWORD
       EOF"
-      "/bin/bash" -c "redis-server /tmp/sentinel.conf"
+      "/bin/bash" -c "redis-server /tmp/sentinel.conf --sentinel"
       EOF'
     secrets:
-    - source: environment.crt
+    - source: cert.pem
       target: /certs/cert.pem
-    - source: environment.key
+    - source: key.pem
       target: /certs/key.pem
     configs:
-    - source: ca.crt
+    - source: ca.pem
       target: /certs/ca-cert.pem
     deploy:
       mode: replicated
@@ -224,15 +224,15 @@ services:
       sentinel announce-port 26372
       requirepass $REDIS_PASSWORD
       EOF"
-      "/bin/bash" -c "redis-server /tmp/sentinel.conf"
+      "/bin/bash" -c "redis-server /tmp/sentinel.conf --sentinel"
       EOF'
     secrets:
-    - source: environment.crt
+    - source: cert.pem
       target: /certs/cert.pem
-    - source: environment.key
+    - source: key.pem
       target: /certs/key.pem
     configs:
-    - source: ca.crt
+    - source: ca.pem
       target: /certs/ca-cert.pem
     deploy:
       mode: replicated
@@ -273,15 +273,15 @@ services:
       sentinel announce-port 26373
       requirepass $REDIS_PASSWORD
       EOF"
-      "/bin/bash" -c "redis-server /tmp/sentinel.conf"
+      "/bin/bash" -c "redis-server /tmp/sentinel.conf --sentinel"
       EOF'
     secrets:
-    - source: environment.crt
+    - source: cert.pem
       target: /certs/cert.pem
-    - source: environment.key
+    - source: key.pem
       target: /certs/key.pem
     configs:
-    - source: ca.crt
+    - source: ca.pem
       target: /certs/ca-cert.pem
     deploy:
       mode: replicated
@@ -289,3 +289,13 @@ services:
 
 networks:
   redis:
+
+secrets:
+  cert.pem:
+    external: true
+  key.pem:
+    external: true
+
+configs:
+  ca.pem:
+    external: true
