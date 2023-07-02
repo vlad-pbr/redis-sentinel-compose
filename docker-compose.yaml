@@ -287,6 +287,76 @@ services:
       mode: replicated
       replicas: 1
 
+    redisinsight:
+      image: $REDISINSIGHT_IMAGE
+      networks:
+        redis:
+          aliases:
+          - redisinsight
+      environment:
+      - RITRUSTEDORIGINS=https://$ENVIRONMENT_DNS:8001
+      deploy:
+        mode: replicated
+        replicas: 1
+
+    redisinsight-proxy:
+      image: $REDISINSIGHT_PROXY_IMAGE
+      networks:
+        redis:
+      ports:
+      - target: 8001
+        published: 8001
+        protocol: tcp
+      entrypoint: |
+        bash -c 'bash -s <<EOF
+        "/bin/bash" -c "cat <<EOF > /tmp/haproxy.cfg
+        global
+            user        haproxy
+            group       haproxy
+            daemon
+
+            log stdout format raw local0 debug
+
+        defaults
+            option                      redispatch
+            retries                     3
+            timeout http-request        10s
+            timeout queue               1m
+            timeout connect             10s
+            timeout client              300s
+            timeout server              300s
+            timeout http-keep-alive     10s
+            timeout check               10s
+            maxconn                     20000
+            log global
+
+        userlist app
+            user admin insecure-password $REDIS_PASSWORD
+
+        frontend redisinsight-front
+            bind *:8001 ssl crt /certs
+            mode http
+            option httplog
+            http-request auth unless { http_auth(app) }
+            http-request set-header Origin https://$ENVIRONMENT_DNS:8001
+            default_backend redisinsight-back
+
+        backend redisinsight-back
+            balance roundrobin
+            mode http
+            server redisinsight redisinsight:8001
+        EOF"
+        "/bin/bash" -c "haproxy -db -f /tmp/haproxy.cfg"
+        EOF'
+      secrets:
+      - source: cert.pem
+        target: /certs/cert.pem
+      - source: key.pem
+        target: /certs/cert.pem.key
+      deploy:
+        mode: replicated
+        replicas: 1
+
 networks:
   redis:
 
