@@ -1,7 +1,7 @@
 Redis + Sentinel with TLS + Auth
 ================================
 
-Full fledged non-persistent Redis + Sentinel stack (3 instances each) with TLS and authentication
+Full fledged non-persistent Redis + Sentinel stack (3 instances each) with TLS and authentication + RedisInsight GUI and TLS+Auth proxy
 
 # Overview
 
@@ -19,6 +19,14 @@ Each instance is a single replica service due to the need for them to be preconf
 
 Each instance is a single replica service due to the need for them to be preconfigured beforehand and accessed individually. Redis Sentinel instance services are named `redis-sentinel-N` where `N` is the instance id (e.g. 1, 2, 3). Instances discover each other via the initial Redis master instance `redis-instance-1`. Each instance publishes its own TLS secure port `2637N` where `N` is the instance id, which is also the port that is being announced to other instances. Instances are also configured to announce themselves using `$ENVIRONMENT_DNS` hostname.
 
+## RedisInsight
+
+GUI for Redis which supports Redis Sentinel. In a very puzzling way, it does not come with any TLS or authentication capabilities (at least none I could find), meaning all of your data securely stored behind Redis authentication and encrypted using a certificate is accessible in plaintext and very much vulnerable to man-in-the-middle attacks. This is where the proxy comes in.
+
+## RedisInsight Proxy
+
+HAProxy instance in front of RedisInsight which performs TLS termination and user authentication. Credentials for the proxy are `admin` with the password being `REDIS_PASSWORD` environment variable.
+
 ## Configuration
 
 Stack deployment can be configured via a `.env` file which comes with this repository. The following variables are used in the stack:
@@ -26,6 +34,8 @@ Stack deployment can be configured via a `.env` file which comes with this repos
 - `ENVIRONMENT_DNS`: DNS name which will lead to one of your Swarm nodes. This can be achieved by deploying a front-facing load balancer or a `keepalived` global service which will juggle a VIP between nodes. TLS certificate must secure this DNS name.
 - `REDIS_IMAGE`: image used by both Redis and Redis Sentinel instances. Later official Redis images come with Sentinel built-in.
 - `REDIS_PASSWORD`: authentication password for both Redis and Redis Sentinel. Keep in mind that username is NOT configured to be used.
+- `REDISINSIGHT_IMAGE`: image for the RedisInsight instance
+- `REDISINSIGHT_PROXY_IMAGE`: image for the HAProxy instance
 
 # Deployment
 
@@ -37,7 +47,7 @@ First, make sure you complete all of the prep work:
 - `.env` file configured for your environment
 - Certificate signed for the `$ENVIRONMENT_DNS` DNS name created as secrets in PEM format called `cert.pem` and `key.pem`
 - CA certificate / full-chain for the signed certificate created as config in PEM format called `ca.pem`
-- `$REDIS_IMAGE` docker image accessible from the Swarm
+- all of the relevant docker images accessible from the Swarm
 
 ## Procedure
 
