@@ -61,5 +61,5 @@ First, make sure you complete all of the prep work:
    set +a
 
    # substitute variables and deploy the stack
-   envsubst < docker-compose.yaml | docker stack deploy redis -c -
+   envsubst < docker-compose.yml | docker stack deploy redis -c -
    ```
